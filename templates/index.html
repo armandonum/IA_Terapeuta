@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Reconocimiento de Emociones</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .video-container {
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .video-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .recording-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .recording-indicator.active {
+            display: block;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .recording-indicator .dot {
+            width: 12px;
+            height: 12px;
+            background: #ff4444;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .btn-start {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-start:hover {
+            background: #45a049;
+        }
+        
+        .btn-stop {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-stop:hover {
+            background: #da190b;
+        }
+        
+        .btn-summary {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-summary:hover {
+            background: #0b7dda;
+        }
+        
+        .btn-download {
+            background: #FF9800;
+            color: white;
+        }
+        
+        .btn-download:hover {
+            background: #e68900;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        button:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .summary-panel {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .summary-panel.active {
+            display: block;
+        }
+        
+        .summary-panel h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        
+        .summary-content {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .emotion-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .emotion-stat:last-child {
+            border-bottom: none;
+        }
+        
+        .emotion-name {
+            font-weight: bold;
+            text-transform: capitalize;
+        }
+        
+        .emotion-value {
+            color: #667eea;
+        }
+        
+        .timeline-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 Sistema de Reconocimiento de Emociones</h1>
+            <p>Control de grabación y análisis en tiempo real</p>
+        </div>
+        
+        <div class="content">
+            <!-- Alert messages -->
+            <div id="alertBox" class="alert"></div>
+            
+            <!-- Video feed -->
+            <div class="video-container">
+                <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+                <div id="recordingIndicator" class="recording-indicator">
+                    <span class="dot"></span>
+                    GRABANDO
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="controls">
+                <button id="btnStart" class="btn-start" onclick="startRecording()">
+                    ▶️ Iniciar Grabación
+                </button>
+                <button id="btnStop" class="btn-stop" onclick="stopRecording()" disabled>
+                    ⏹️ Detener Grabación
+                </button>
+                <button id="btnSummary" class="btn-summary" onclick="getCurrentSummary()">
+                    📊 Ver Resumen Actual
+                </button>
+                <button id="btnDownload" class="btn-download" onclick="downloadHistory()">
+                    💾 Descargar Historial JSON
+                </button>
+            </div>
+            
+            <!-- Summary panel -->
+            <div id="summaryPanel" class="summary-panel">
+                <h3>📈 Análisis de Emociones</h3>
+                <div id="summaryContent" class="summary-content">
+                    <p>Esperando datos...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isRecording = false;
+
+        function showAlert(message, type = 'success') {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.textContent = message;
+            alertBox.className = `alert ${type} active`;
+            setTimeout(() => {
+                alertBox.classList.remove('active');
+            }, 4000);
+        }
+
+        function startRecording() {
+            fetch('/start_recording', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    isRecording = true;
+                    document.getElementById('btnStart').disabled = true;
+                    document.getElementById('btnStop').disabled = false;
+                    document.getElementById('recordingIndicator').classList.add('active');
+                    showAlert('✅ Grabación iniciada: Video + Historial de emociones', 'success');
+                })
+                .catch(error => {
+                    showAlert('❌ Error al iniciar grabación: ' + error, 'error');
+                });
+        }
+
+        function stopRecording() {
+            fetch('/stop_recording', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    isRecording = false;
+                    document.getElementById('btnStart').disabled = false;
+                    document.getElementById('btnStop').disabled = true;
+                    document.getElementById('recordingIndicator').classList.remove('active');
+                    showAlert('⏹️ Grabación detenida. Generando resumen...', 'success');
+                    
+                    if (data.emotion_summary) {
+                        displaySummary(data.emotion_summary);
+                    }
+                })
+                .catch(error => {
+                    showAlert('❌ Error al detener grabación: ' + error, 'error');
+                });
+        }
+
+        function getCurrentSummary() {
+            fetch('/get_current_summary')
+                .then(response => response.json())
+                .then(data => {
+                    displaySummary(data);
+                    showAlert('📊 Resumen actualizado', 'success');
+                })
+                .catch(error => {
+                    showAlert('❌ Error al obtener resumen: ' + error, 'error');
+                });
+        }
+
+        function downloadHistory() {
+            fetch('/download_history')
+                .then(response => response.json())
+                .then(data => {
+                    const dataStr = JSON.stringify(data, null, 2);
+                    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `emotion_history_${new Date().getTime()}.json`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    showAlert('💾 Historial descargado exitosamente', 'success');
+                })
+                .catch(error => {
+                    showAlert('❌ Error al descargar: ' + error, 'error');
+                });
+        }
+
+        function displaySummary(data) {
+            const panel = document.getElementById('summaryPanel');
+            const content = document.getElementById('summaryContent');
+            
+            if (!data || data.status === 'no_data') {
+                content.innerHTML = '<p>⚠️ No hay datos registrados aún. Inicia una grabación primero.</p>';
+                panel.classList.add('active');
+                return;
+            }
+
+            let html = '';
+
+            // Recording info
+            if (data.recording_info) {
+                html += `
+                    <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                        <h4>⏱️ Información de Grabación</h4>
+                        <p><strong>Inicio:</strong> ${data.recording_info.start_time || 'N/A'}</p>
+                        <p><strong>Fin:</strong> ${data.recording_info.end_time || 'Grabando...'}</p>
+                        <p><strong>Duración:</strong> ${data.recording_info.duration_seconds || 0} segundos</p>
+                        <p><strong>Frames analizados:</strong> ${data.recording_info.total_frames || 0}</p>
+                    </div>
+                `;
+            }
+
+            // Anxiety Analysis (DESTACADO)
+            if (data.anxiety_analysis) {
+                const anxiety = data.anxiety_analysis;
+                let levelColor = '#4caf50'; // Verde por defecto
+                if (anxiety.anxiety_level === 'media') levelColor = '#ff9800';
+                if (anxiety.anxiety_level === 'alta') levelColor = '#ff5722';
+                if (anxiety.anxiety_level === 'muy_alta') levelColor = '#f44336';
+                
+                html += `
+                    <div style="margin-bottom: 20px; padding: 20px; background: ${levelColor}20; border-left: 5px solid ${levelColor}; border-radius: 8px;">
+                        <h4 style="color: ${levelColor};">🚨 ANÁLISIS DE ANSIEDAD</h4>
+                        <p><strong>Nivel:</strong> <span style="font-size: 1.3em; color: ${levelColor};">${anxiety.anxiety_level.toUpperCase()}</span></p>
+                        <p><strong>Score:</strong> ${anxiety.anxiety_score}%</p>
+                        <p><strong>Confianza:</strong> ${anxiety.confidence}%</p>
+                        <p><strong>Tendencia:</strong> ${anxiety.trend}</p>
+                        <p><strong>Emociones contribuyentes:</strong> ${anxiety.contributing_emotions.join(', ')}</p>
+                        <p style="margin-top: 10px; padding: 10px; background: white; border-radius: 5px;">
+                            💡 <strong>Recomendación:</strong> ${anxiety.recommendations}
+                        </p>
+                    </div>
+                `;
+            }
+
+            // Anxiety Summary (si existe)
+            if (data.anxiety_summary) {
+                const summary = data.anxiety_summary;
+                html += `
+                    <div style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+                        <h4>📊 Resumen de Ansiedad en Sesión</h4>
+                        <p><strong>Promedio:</strong> ${summary.mean}%</p>
+                        <p><strong>Máximo:</strong> ${summary.max}%</p>
+                        <p><strong>Mínimo:</strong> ${summary.min}%</p>
+                        <p><strong>Actual:</strong> ${summary.current}%</p>
+                    </div>
+                `;
+            }
+
+            // Emotion statistics
+            if (data.emotion_statistics) {
+                html += '<h4>📊 Estadísticas de Emociones</h4><div style="margin-bottom: 20px;">';
+                for (const [emotion, stats] of Object.entries(data.emotion_statistics)) {
+                    html += `
+                        <div class="emotion-stat">
+                            <span class="emotion-name">${emotion}</span>
+                            <span class="emotion-value">
+                                Promedio: ${stats.mean}% | 
+                                Max: ${stats.max}% | 
+                                Dominancia: ${stats.dominant_percentage}%
+                            </span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+
+            // Transitions
+            if (data.emotion_transitions && data.emotion_transitions.length > 0) {
+                html += '<h4>🔄 Transiciones Detectadas</h4><div style="margin-bottom: 20px;">';
+                data.emotion_transitions.slice(0, 5).forEach(trans => {
+                    html += `
+                        <div class="timeline-item">
+                            <strong>Segundo ${trans.time}s:</strong> 
+                            ${trans.from} → ${trans.to} 
+                            (confianza: ${trans.confidence}%)
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            // LLM Summary
+            if (data.llm_summary) {
+                html += `
+                    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+                        <h4>🤖 Resumen para LLM</h4>
+                        <pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">${data.llm_summary}</pre>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
+            panel.classList.add('active');
+        }
+    </script>
+</body>
+</html>
