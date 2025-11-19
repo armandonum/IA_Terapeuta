@@ -151,4 +151,4 @@ if __name__ == "__main__":
         sys.exit(1)
     
     video_stream = VideoStream(camera, emotion_recognition_system)
-    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+    app.run(host='0.0.0.0', port=5001, debug=True, use_reloader=False)

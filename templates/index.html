@@ -3,483 +3,735 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Reconocimiento de Emociones</title>
+    <title>FaceSense - Análisis Emocional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'pulse-glow': 'pulse-glow 2s infinite',
+                        'float-smooth': 'float-smooth 3s ease-in-out infinite',
+                        'glow-pulse': 'glow-pulse 2.5s ease-in-out infinite',
+                        'slide-up': 'slide-up 0.6s ease-out',
+                        'fade-in': 'fade-in 0.8s ease-out',
+                        'scale-gentle': 'scale-gentle 0.4s ease-out',
+                        'float-avatar': 'float-avatar 4s ease-in-out infinite',
+                        'slide-up-bottom': 'slide-up-bottom 0.6s ease-out',
+                        'bubble-appear': 'bubble-appear 0.5s ease-out'
+                    },
+                    keyframes: {
+                        'pulse-glow': {
+                            '0%, 100%': { boxShadow: '0 0 10px rgba(74, 222, 128, 0.5)' },
+                            '50%': { boxShadow: '0 0 20px rgba(74, 222, 128, 0.8)' }
+                        },
+                        'float-smooth': {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-15px)' }
+                        },
+                        'float-avatar': {
+                            '0%, 100%': { transform: 'translateY(0px) scale(1)' },
+                            '50%': { transform: 'translateY(-20px) scale(1.02)' }
+                        },
+                        'glow-pulse': {
+                            '0%, 100%': { boxShadow: '0 0 20px rgba(168, 85, 247, 0.4), 0 0 40px rgba(168, 85, 247, 0.2)' },
+                            '50%': { boxShadow: '0 0 30px rgba(168, 85, 247, 0.6), 0 0 60px rgba(168, 85, 247, 0.3)' }
+                        },
+                        'slide-up': {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        'slide-up-bottom': {
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        'fade-in': {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        'scale-gentle': {
+                            '0%': { transform: 'scale(0.95)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        },
+                        'bubble-appear': {
+                            '0%': { transform: 'scale(0.8) translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'scale(1) translateY(0)', opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-        
-        .content {
-            padding: 30px;
-        }
-        
-        .video-container {
-            background: #000;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 30px;
-            position: relative;
-        }
-        
-        .video-container img {
+        html, body {
             width: 100%;
-            height: auto;
-            display: block;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #faf8ff 0%, #f0f9ff 50%, #f5fffe 100%);
         }
         
-        .recording-indicator {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 10px 20px;
+        /* Estilos para burbujas de chat */
+        .chat-bubble {
+            position: relative;
+            background: linear-gradient(135deg, #a78bfa 0%, #c084fc 100%);
             border-radius: 20px;
-            font-weight: bold;
-            display: none;
-        }
-        
-        .recording-indicator.active {
-            display: block;
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .recording-indicator .dot {
-            width: 12px;
-            height: 12px;
-            background: #ff4444;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 10px;
-            animation: blink 1s infinite;
-        }
-        
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-        
-        .controls {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 30px;
-        }
-        
-        button {
-            padding: 15px 30px;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        
-        button:active {
-            transform: translateY(0);
-        }
-        
-        .btn-start {
-            background: #4CAF50;
+            padding: 12px 16px;
             color: white;
+            max-width: 90%;
+            box-shadow: 0 4px 15px rgba(167, 139, 250, 0.3);
+            animation: bubble-appear 0.5s ease-out;
+            font-size: 0.95rem;
+            line-height: 1.4;
         }
         
-        .btn-start:hover {
-            background: #45a049;
+        .chat-bubble::before {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 20px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid #c084fc;
         }
         
-        .btn-stop {
-            background: #f44336;
-            color: white;
-        }
-        
-        .btn-stop:hover {
-            background: #da190b;
-        }
-        
-        .btn-summary {
-            background: #2196F3;
-            color: white;
-        }
-        
-        .btn-summary:hover {
-            background: #0b7dda;
-        }
-        
-        .btn-download {
-            background: #FF9800;
-            color: white;
-        }
-        
-        .btn-download:hover {
-            background: #e68900;
-        }
-        
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-        
-        button:disabled:hover {
-            transform: none;
-            box-shadow: none;
-        }
-        
-        .summary-panel {
-            background: #f5f5f5;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-            display: none;
-        }
-        
-        .summary-panel.active {
-            display: block;
-        }
-        
-        .summary-panel h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.5rem;
-        }
-        
-        .summary-content {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            max-height: 400px;
+        #chatPanel {
+            max-height: 350px;
             overflow-y: auto;
+            scroll-behavior: smooth;
         }
         
-        .emotion-stat {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
+        #chatPanel::-webkit-scrollbar {
+            width: 6px;
         }
         
-        .emotion-stat:last-child {
-            border-bottom: none;
+        #chatPanel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
         }
         
-        .emotion-name {
-            font-weight: bold;
-            text-transform: capitalize;
-        }
-        
-        .emotion-value {
-            color: #667eea;
-        }
-        
-        .timeline-item {
-            padding: 10px;
-            margin-bottom: 10px;
-            background: #f9f9f9;
-            border-left: 4px solid #667eea;
-            border-radius: 4px;
-        }
-        
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-        
-        .alert.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .alert.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .alert.active {
-            display: block;
+        #chatPanel::-webkit-scrollbar-thumb {
+            background: #a78bfa;
+            border-radius: 10px;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🎭 Sistema de Reconocimiento de Emociones</h1>
-            <p>Control de grabación y análisis en tiempo real</p>
-        </div>
+<body class="w-full h-full text-gray-800">
+    
+    <!-- Main fullscreen container - occupies entire viewport -->
+    <main class="w-full h-full flex flex-col md:flex-row gap-0 relative">
         
-        <div class="content">
-            <!-- Alert messages -->
-            <div id="alertBox" class="alert"></div>
+        <!-- Emotions Panel - Left sidebar or top on mobile -->
+        <div class="w-full md:w-80 h-auto md:h-full md:overflow-y-auto bg-gradient-to-br from-white via-green-50 to-teal-50 border-b md:border-b-0 md:border-r-2 border-green-200 shadow-xl p-4 md:p-6 animate-fade-in">
+            <div class="text-lg md:text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-teal-600 mb-4 flex items-center gap-2 sticky top-0 bg-white/80 backdrop-blur-sm p-2 -m-2 mb-4 rounded-lg">
+                <span class="text-xl md:text-2xl">😊</span> <span class="hidden sm:inline">Emociones</span>
+            </div>
+            <div id="emotionsContainer" class="space-y-2 md:space-y-3">
+                <div class="flex items-center gap-2 animate-scale-gentle">
+                    <div class="w-16 md:w-20 flex items-center gap-1 text-xs font-medium">
+                        <span class="text-base">😊</span>
+                        <span class="hidden sm:inline">Felicidad</span>
+                    </div>
+                    <div class="flex-1 h-3 md:h-4 bg-white/50 rounded-full overflow-hidden border border-green-200">
+                        <div class="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all duration-300" id="bar-happy" style="width: 0%"></div>
+                    </div>
+                    <span class="text-xs font-bold text-green-600 w-6 text-right" id="pct-happy">0%</span>
+                </div>
+                <div class="flex items-center gap-2 animate-scale-gentle" style="animation-delay: 0.05s">
+                    <div class="w-16 md:w-20 flex items-center gap-1 text-xs font-medium">
+                        <span class="text-base">😢</span>
+                        <span class="hidden sm:inline">Tristeza</span>
+                    </div>
+                    <div class="flex-1 h-3 md:h-4 bg-white/50 rounded-full overflow-hidden border border-blue-200">
+                        <div class="h-full bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full transition-all duration-300" id="bar-sad" style="width: 0%"></div>
+                    </div>
+                    <span class="text-xs font-bold text-blue-600 w-6 text-right" id="pct-sad">0%</span>
+                </div>
+                <div class="flex items-center gap-2 animate-scale-gentle" style="animation-delay: 0.1s">
+                    <div class="w-16 md:w-20 flex items-center gap-1 text-xs font-medium">
+                        <span class="text-base">😨</span>
+                        <span class="hidden sm:inline">Temor</span>
+                    </div>
+                    <div class="flex-1 h-3 md:h-4 bg-white/50 rounded-full overflow-hidden border border-purple-200">
+                        <div class="h-full bg-gradient-to-r from-purple-400 to-violet-500 rounded-full transition-all duration-300" id="bar-fear" style="width: 0%"></div>
+                    </div>
+                    <span class="text-xs font-bold text-purple-600 w-6 text-right" id="pct-fear">0%</span>
+                </div>
+                <div class="flex items-center gap-2 animate-scale-gentle" style="animation-delay: 0.15s">
+                    <div class="w-16 md:w-20 flex items-center gap-1 text-xs font-medium">
+                        <span class="text-base">😠</span>
+                        <span class="hidden sm:inline">Ira</span>
+                    </div>
+                    <div class="flex-1 h-3 md:h-4 bg-white/50 rounded-full overflow-hidden border border-red-200">
+                        <div class="h-full bg-gradient-to-r from-red-400 to-rose-500 rounded-full transition-all duration-300" id="bar-angry" style="width: 0%"></div>
+                    </div>
+                    <span class="text-xs font-bold text-red-600 w-6 text-right" id="pct-angry">0%</span>
+                </div>
+                <div class="flex items-center gap-2 animate-scale-gentle" style="animation-delay: 0.2s">
+                    <div class="w-16 md:w-20 flex items-center gap-1 text-xs font-medium">
+                        <span class="text-base">😲</span>
+                        <span class="hidden sm:inline">Sorpresa</span>
+                    </div>
+                    <div class="flex-1 h-3 md:h-4 bg-white/50 rounded-full overflow-hidden border border-orange-200">
+                        <div class="h-full bg-gradient-to-r from-orange-400 to-amber-500 rounded-full transition-all duration-300" id="bar-surprise" style="width: 0%"></div>
+                    </div>
+                    <span class="text-xs font-bold text-orange-600 w-6 text-right" id="pct-surprise">0%</span>
+                </div>
+                <div class="flex items-center gap-2 animate-scale-gentle" style="animation-delay: 0.25s">
+                    <div class="w-16 md:w-20 flex items-center gap-1 text-xs font-medium">
+                        <span class="text-base">🤢</span>
+                        <span class="hidden sm:inline">Disgusto</span>
+                    </div>
+                    <div class="flex-1 h-3 md:h-4 bg-white/50 rounded-full overflow-hidden border border-lime-200">
+                        <div class="h-full bg-gradient-to-r from-lime-400 to-green-500 rounded-full transition-all duration-300" id="bar-disgust" style="width: 0%"></div>
+                    </div>
+                    <span class="text-xs font-bold text-lime-600 w-6 text-right" id="pct-disgust">0%</span>
+                </div>
+                <div class="flex items-center gap-2 animate-scale-gentle" style="animation-delay: 0.3s">
+                    <div class="w-16 md:w-20 flex items-center gap-1 text-xs font-medium">
+                        <span class="text-base">😰</span>
+                        <span class="hidden sm:inline">Ansiedad</span>
+                    </div>
+                    <div class="flex-1 h-3 md:h-4 bg-white/50 rounded-full overflow-hidden border border-amber-200">
+                        <div class="h-full bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full transition-all duration-300" id="bar-anxiety" style="width: 0%"></div>
+                    </div>
+                    <span class="text-xs font-bold text-amber-600 w-6 text-right" id="pct-anxiety">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Avatar Section - Center, flexible grow -->
+        <div class="flex-1 relative h-96 md:h-full animate-float-avatar">
+            <!-- Avatar Canvas with transparent background -->
+            <div class="w-full h-full rounded-none md:rounded-3xl overflow-hidden border-0 md:border-4 md:border-gradient-to-r from-purple-300 to-blue-300 md:shadow-2xl relative m-0" style="background: radial-gradient(circle at 30% 30%, rgba(168, 85, 247, 0.1), rgba(99, 102, 241, 0.05), transparent);">
+                <canvas id="avatarCanvas" class="w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+            </div>
             
-            <!-- Video feed -->
-            <div class="video-container">
-                <img src="{{ url_for('video_feed') }}" alt="Video Feed">
-                <div id="recordingIndicator" class="recording-indicator">
-                    <span class="dot"></span>
-                    GRABANDO
+            <!-- Emotion Badge Overlay - Top center -->
+            <div class="absolute top-4 left-1/2 -translate-x-1/2 p-3 bg-white/90 rounded-2xl border-2 border-purple-200 text-center backdrop-blur-sm animate-scale-gentle z-10">
+                <div class="text-xs text-gray-600 font-medium mb-1">Estado Emocional</div>
+                <div id="currentEmotionBadge" class="bg-gradient-to-r from-purple-400 to-blue-400 text-white px-3 py-1.5 rounded-full text-sm font-semibold shadow-lg">😐 Neutral</div>
+            </div>
+
+            <!-- Chat Panel flotante - inferior derecho -->
+            <div class="absolute top-20 right-4 w-72 md:w-80 bg-white rounded-3xl shadow-2xl  border-purple-200 overflow-hidden flex flex-col z-20 animate-slide-up">
+                
+                <div id="chatPanel" class="flex-1 p-4 space-y-3 bg-gradient-to-b from-purple-50 to-blue-50">
+                    <div class="text-center text-gray-400 text-sm">
+                        Esperando respuesta...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Avatar control buttons - positioned at bottom center -->
+            <div class="flex flex-col gap-2 absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+                <div class="flex gap-2">
+                    <button class="px-3 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-full text-xs font-semibold border-0 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300" onclick="resetAvatarRotation()">↻ Reiniciar</button>
+                    <button class="px-3 py-2 bg-gradient-to-r from-cyan-400 to-blue-400 text-white rounded-full text-xs font-semibold border-0 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300" onclick="toggleAutoRotate()">🔄 Auto</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Panel - Right sidebar -->
+        <div class="w-full md:w-80 h-auto md:h-full bg-white border-t md:border-t-0 md:border-l-2 border-gray-200 shadow-xl p-4 md:p-6 flex flex-col md:overflow-y-auto animate-fade-in">
+            <h3 class="text-lg md:text-xl font-bold text-gray-700 mb-3 flex items-center gap-2 sticky top-0 bg-white/80 backdrop-blur-sm p-2 -m-2 mb-3 rounded-lg">
+                <span class="text-2xl">📹</span> <span class="hidden sm:inline">Video</span>
+            </h3>
+            <div class="w-full aspect-video rounded-2xl overflow-hidden bg-gradient-to-br from-slate-200 to-slate-300 mb-3 border-2 border-gray-300 shadow-md flex-shrink-0">
+                <img src="/video_feed" alt="Video Feed" id="videoFeed" class="w-full h-full object-cover">
+            </div>
+            <div class="flex flex-col gap-2 flex-shrink-0">
+                <div class="bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-2 rounded-full flex items-center gap-1 justify-center text-xs font-semibold">
+                    🎙️ <span id="audioStatus">Mic: OFF</span>
+                </div>
+                <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-2 rounded-full flex items-center gap-1 justify-center text-xs font-semibold">
+                    ⌨️ <span id="textStatus">Text: ON</span>
                 </div>
             </div>
             
-            <!-- Controls -->
-            <div class="controls">
-                <button id="btnStart" class="btn-start" onclick="startRecording()">
-                    ▶️ Iniciar Grabación
+            <!-- Session Status -->
+            <div class="mt-4 p-3 bg-gradient-to-r from-green-100 to-emerald-100 rounded-2xl border-2 border-green-300 text-center flex-shrink-0">
+                <div id="sessionStatus" class="text-xs md:text-sm font-semibold text-green-700">
+                    ✅ Listo
+                </div>
+            </div>
+
+            <!-- Emotion Summary - scrollable on mobile -->
+            <div class="bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl p-4 mt-4 border-2 border-purple-200 shadow-lg flex-shrink-0">
+                <h3 class="text-sm font-bold text-purple-700 mb-2">📊 Resumen</h3>
+                <div class="flex justify-between items-center p-2 bg-white/60 rounded-lg">
+                    <span class="text-xs font-medium text-gray-700">Principal</span>
+                    <span id="confidenceBadge" class="bg-gradient-to-r from-amber-400 to-orange-400 text-white px-2 py-1 rounded-full text-xs font-semibold">📊 0%</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating controls overlay - always visible at bottom -->
+    <div class="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6 bg-gradient-to-t from-black/60 via-black/30 to-transparent backdrop-blur-sm animate-slide-up-bottom">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-center">
+            <!-- Action Buttons -->
+            <div class="flex gap-3 w-full md:w-auto justify-center md:justify-start">
+                <button class="flex-1 md:flex-none px-6 py-2.5 border-0 rounded-full text-base font-bold cursor-pointer bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 shadow-lg" id="btnStart" onclick="startSession()">
+                    ▶️ Iniciar
                 </button>
-                <button id="btnStop" class="btn-stop" onclick="stopRecording()" disabled>
-                    ⏹️ Detener Grabación
+                <button class="flex-1 md:flex-none px-6 py-2.5 border-0 rounded-full text-base font-bold cursor-pointer bg-gradient-to-r from-red-500 to-pink-600 text-white hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" id="btnStop" onclick="stopSession()" disabled>
+                    ⏹️ Detener
                 </button>
-                <button id="btnSummary" class="btn-summary" onclick="getCurrentSummary()">
-                    📊 Ver Resumen Actual
-                </button>
-                <button id="btnDownload" class="btn-download" onclick="downloadHistory()">
-                    💾 Descargar Historial JSON
+                <button class="flex-1 md:flex-none px-6 py-2.5 text-xs bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 font-semibold border-0" onclick="toggleInputMode()">
+                    <span id="modeIcon">🎙️</span> Modo
                 </button>
             </div>
-            
-            <!-- Summary panel -->
-            <div id="summaryPanel" class="summary-panel">
-                <h3>📈 Análisis de Emociones</h3>
-                <div id="summaryContent" class="summary-content">
-                    <p>Esperando datos...</p>
+        </div>
+    </div>
+
+    <!-- Status Indicator -->
+    <div class="fixed top-5 right-5 bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-3 rounded-full font-bold hidden z-50 text-sm shadow-xl animate-pulse" id="statusIndicator">
+        🔴 GRABANDO
+    </div>
+
+    <!-- Results Modal -->
+    <div class="fixed inset-0 bg-black/70 hidden justify-center items-center z-[1000] p-4 backdrop-blur-sm" id="resultsModal">
+        <div class="bg-white rounded-3xl p-6 md:p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-gentle">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">📊 Análisis</h2>
+                <button class="bg-gradient-to-r from-red-500 to-pink-500 border-0 text-white w-10 h-10 rounded-full cursor-pointer text-2xl hover:scale-110 transition-all duration-300 font-bold" onclick="closeResults()">✕</button>
+            </div>
+            <div class="space-y-4">
+                <div class="bg-gradient-to-br from-purple-100 to-blue-100 p-4 md:p-6 rounded-2xl border-2 border-purple-300">
+                    <h3 class="mb-3 text-green-700 text-base md:text-lg font-bold">🤖 Prompt LLM</h3>
+                    <pre class="bg-white p-4 rounded-lg overflow-x-auto whitespace-pre-wrap break-words text-xs md:text-sm font-mono border border-purple-200" id="llmOutput"></pre>
+                </div>
+                <div class="bg-gradient-to-br from-green-100 to-teal-100 p-4 md:p-6 rounded-2xl border-2 border-green-300">
+                    <h3 class="mb-3 text-green-700 text-base md:text-lg font-bold">📝 Texto</h3>
+                    <pre class="bg-white p-4 rounded-lg overflow-x-auto whitespace-pre-wrap break-words text-xs md:text-sm font-mono border border-green-200" id="textOutput"></pre>
+                </div>
+                <div class="bg-gradient-to-br from-blue-100 to-indigo-100 p-4 md:p-6 rounded-2xl border-2 border-blue-300">
+                    <h3 class="mb-3 text-blue-700 text-base md:text-lg font-bold">🔍 JSON</h3>
+                    <pre class="bg-white p-4 rounded-lg overflow-x-auto whitespace-pre-wrap break-words text-xs md:text-sm font-mono border border-blue-200" id="fullOutput"></pre>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Three.js with ES Modules -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+        import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+        
+        window.THREE = THREE;
+        window.OBJLoader = OBJLoader;
+        window.MTLLoader = MTLLoader;
+    </script>
+    
     <script>
-        let isRecording = false;
+        let scene, camera, renderer, avatar, lights = {};
+        let autoRotate = false;
+        let mouseX = 0, mouseY = 0;
+        let targetRotationX = 0, targetRotationY = 0;
 
-        function showAlert(message, type = 'success') {
-            const alertBox = document.getElementById('alertBox');
-            alertBox.textContent = message;
-            alertBox.className = `alert ${type} active`;
-            setTimeout(() => {
-                alertBox.classList.remove('active');
-            }, 4000);
+        const emotionColors = {
+            happy: 0xffeb3b,
+            sad: 0x2196f3,
+            angry: 0xf44336,
+            fear: 0x9c27b0,
+            surprise: 0xff9800,
+            disgust: 0x4caf50,
+            neutral: 0xffffff,
+            anxiety: 0xff5722
+        };
+
+        function initThreeJS() {
+            const canvas = document.getElementById('avatarCanvas');
+            const container = canvas.parentElement;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf5f3ff);
+            scene.background.transparent = true;
+
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 5);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+            const updateSize = () => {
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                renderer.setSize(width, height);
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+            };
+            updateSize();
+
+            renderer.shadowMap.enabled = true;
+            renderer.setClearColor(0x000000, 0);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            mainLight.position.set(5, 5, 5);
+            mainLight.castShadow = true;
+            scene.add(mainLight);
+            lights.main = mainLight;
+
+            const fillLight = new THREE.PointLight(0x4ade80, 0.6);
+            fillLight.position.set(-3, 0, 3);
+            scene.add(fillLight);
+            lights.fill = fillLight;
+
+            const rimLight = new THREE.PointLight(0xa855f7, 0.8);
+            rimLight.position.set(0, 3, -3);
+            scene.add(rimLight);
+            lights.rim = rimLight;
+
+            loadAvatar();
+
+            canvas.addEventListener('mousemove', onMouseMove);
+            canvas.addEventListener('wheel', onWheel);
+            window.addEventListener('resize', () => {
+                updateSize();
+            });
+
+            animate();
         }
 
-        function startRecording() {
-            fetch('/start_recording', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    isRecording = true;
-                    document.getElementById('btnStart').disabled = true;
-                    document.getElementById('btnStop').disabled = false;
-                    document.getElementById('recordingIndicator').classList.add('active');
-                    showAlert('✅ Grabación iniciada: Video + Historial de emociones', 'success');
-                })
-                .catch(error => {
-                    showAlert('❌ Error al iniciar grabación: ' + error, 'error');
-                });
-        }
-
-        function stopRecording() {
-            fetch('/stop_recording', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    isRecording = false;
-                    document.getElementById('btnStart').disabled = false;
-                    document.getElementById('btnStop').disabled = true;
-                    document.getElementById('recordingIndicator').classList.remove('active');
-                    showAlert('⏹️ Grabación detenida. Generando resumen...', 'success');
-                    
-                    if (data.emotion_summary) {
-                        displaySummary(data.emotion_summary);
-                    }
-                })
-                .catch(error => {
-                    showAlert('❌ Error al detener grabación: ' + error, 'error');
-                });
-        }
-
-        function getCurrentSummary() {
-            fetch('/get_current_summary')
-                .then(response => response.json())
-                .then(data => {
-                    displaySummary(data);
-                    showAlert('📊 Resumen actualizado', 'success');
-                })
-                .catch(error => {
-                    showAlert('❌ Error al obtener resumen: ' + error, 'error');
-                });
-        }
-
-        function downloadHistory() {
-            fetch('/download_history')
-                .then(response => response.json())
-                .then(data => {
-                    const dataStr = JSON.stringify(data, null, 2);
-                    const dataBlob = new Blob([dataStr], {type: 'application/json'});
-                    const url = URL.createObjectURL(dataBlob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `emotion_history_${new Date().getTime()}.json`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-                    showAlert('💾 Historial descargado exitosamente', 'success');
-                })
-                .catch(error => {
-                    showAlert('❌ Error al descargar: ' + error, 'error');
-                });
-        }
-
-        function displaySummary(data) {
-            const panel = document.getElementById('summaryPanel');
-            const content = document.getElementById('summaryContent');
-            
-            if (!data || data.status === 'no_data') {
-                content.innerHTML = '<p>⚠️ No hay datos registrados aún. Inicia una grabación primero.</p>';
-                panel.classList.add('active');
+        function loadAvatar() {
+            if (typeof MTLLoader === 'undefined' || typeof OBJLoader === 'undefined') {
+                console.error('❌ MTLLoader u OBJLoader no disponibles');
+                createPlaceholderAvatar();
                 return;
             }
 
-            let html = '';
+            const mtlLoader = new MTLLoader();
+            const mtlPath = '/static/models/detectivecatv2.mtl';
+            
+            console.log('🔄 Cargando texturas MTL...');
+            
+            mtlLoader.load(
+                mtlPath,
+                function (materials) {
+                    materials.preload();
+                    console.log('✅ Texturas MTL cargadas');
+                    
+                    const objLoader = new OBJLoader();
+                    objLoader.setMaterials(materials);
+                    
+                    const objPath = '/static/models/detectivecatv2.obj';
+                    
+                    objLoader.load(
+                        objPath,
+                        function (object) {
+                            avatar = object;
+                            
+                            const box = new THREE.Box3().setFromObject(avatar);
+                            const size = box.getSize(new THREE.Vector3());
+                            const center = box.getCenter(new THREE.Vector3());
+                            
+                            const maxDim = Math.max(size.x, size.y, size.z);
+                            const scale = 2 / maxDim;
+                            avatar.scale.set(scale, scale, scale);
+                            
+                            avatar.position.sub(center.multiplyScalar(scale));
+                            
+                            avatar.traverse(function (child) {
+                                if (child instanceof THREE.Mesh) {
+                                    child.castShadow = true;
+                                    child.receiveShadow = true;
+                                }
+                            });
 
-            // Recording info
-            if (data.recording_info) {
-                html += `
-                    <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
-                        <h4>⏱️ Información de Grabación</h4>
-                        <p><strong>Inicio:</strong> ${data.recording_info.start_time || 'N/A'}</p>
-                        <p><strong>Fin:</strong> ${data.recording_info.end_time || 'Grabando...'}</p>
-                        <p><strong>Duración:</strong> ${data.recording_info.duration_seconds || 0} segundos</p>
-                        <p><strong>Frames analizados:</strong> ${data.recording_info.total_frames || 0}</p>
-                    </div>
-                `;
-            }
-
-            // Anxiety Analysis (DESTACADO)
-            if (data.anxiety_analysis) {
-                const anxiety = data.anxiety_analysis;
-                let levelColor = '#4caf50'; // Verde por defecto
-                if (anxiety.anxiety_level === 'media') levelColor = '#ff9800';
-                if (anxiety.anxiety_level === 'alta') levelColor = '#ff5722';
-                if (anxiety.anxiety_level === 'muy_alta') levelColor = '#f44336';
-                
-                html += `
-                    <div style="margin-bottom: 20px; padding: 20px; background: ${levelColor}20; border-left: 5px solid ${levelColor}; border-radius: 8px;">
-                        <h4 style="color: ${levelColor};">🚨 ANÁLISIS DE ANSIEDAD</h4>
-                        <p><strong>Nivel:</strong> <span style="font-size: 1.3em; color: ${levelColor};">${anxiety.anxiety_level.toUpperCase()}</span></p>
-                        <p><strong>Score:</strong> ${anxiety.anxiety_score}%</p>
-                        <p><strong>Confianza:</strong> ${anxiety.confidence}%</p>
-                        <p><strong>Tendencia:</strong> ${anxiety.trend}</p>
-                        <p><strong>Emociones contribuyentes:</strong> ${anxiety.contributing_emotions.join(', ')}</p>
-                        <p style="margin-top: 10px; padding: 10px; background: white; border-radius: 5px;">
-                            💡 <strong>Recomendación:</strong> ${anxiety.recommendations}
-                        </p>
-                    </div>
-                `;
-            }
-
-            // Anxiety Summary (si existe)
-            if (data.anxiety_summary) {
-                const summary = data.anxiety_summary;
-                html += `
-                    <div style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
-                        <h4>📊 Resumen de Ansiedad en Sesión</h4>
-                        <p><strong>Promedio:</strong> ${summary.mean}%</p>
-                        <p><strong>Máximo:</strong> ${summary.max}%</p>
-                        <p><strong>Mínimo:</strong> ${summary.min}%</p>
-                        <p><strong>Actual:</strong> ${summary.current}%</p>
-                    </div>
-                `;
-            }
-
-            // Emotion statistics
-            if (data.emotion_statistics) {
-                html += '<h4>📊 Estadísticas de Emociones</h4><div style="margin-bottom: 20px;">';
-                for (const [emotion, stats] of Object.entries(data.emotion_statistics)) {
-                    html += `
-                        <div class="emotion-stat">
-                            <span class="emotion-name">${emotion}</span>
-                            <span class="emotion-value">
-                                Promedio: ${stats.mean}% | 
-                                Max: ${stats.max}% | 
-                                Dominancia: ${stats.dominant_percentage}%
-                            </span>
-                        </div>
-                    `;
+                            scene.add(avatar);
+                            console.log('✅ Avatar con texturas cargado correctamente');
+                        },
+                        function (xhr) {
+                            const percent = (xhr.loaded / xhr.total * 100).toFixed(1);
+                            console.log(`📦 Cargando avatar: ${percent}%`);
+                        },
+                        function (error) {
+                            console.error('❌ Error cargando OBJ:', error);
+                            createPlaceholderAvatar();
+                        }
+                    );
+                },
+                function (xhr) {
+                    const percent = (xhr.loaded / xhr.total * 100).toFixed(1);
+                    console.log(`📦 Cargando texturas: ${percent}%`);
+                },
+                function (error) {
+                    console.error('❌ Error cargando MTL:', error);
+                    createPlaceholderAvatar();
                 }
-                html += '</div>';
-            }
-
-            // Transitions
-            if (data.emotion_transitions && data.emotion_transitions.length > 0) {
-                html += '<h4>🔄 Transiciones Detectadas</h4><div style="margin-bottom: 20px;">';
-                data.emotion_transitions.slice(0, 5).forEach(trans => {
-                    html += `
-                        <div class="timeline-item">
-                            <strong>Segundo ${trans.time}s:</strong> 
-                            ${trans.from} → ${trans.to} 
-                            (confianza: ${trans.confidence}%)
-                        </div>
-                    `;
-                });
-                html += '</div>';
-            }
-
-            // LLM Summary
-            if (data.llm_summary) {
-                html += `
-                    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
-                        <h4>🤖 Resumen para LLM</h4>
-                        <pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">${data.llm_summary}</pre>
-                    </div>
-                `;
-            }
-
-            content.innerHTML = html;
-            panel.classList.add('active');
+            );
         }
+
+        function createPlaceholderAvatar() {
+            const geometry = new THREE.SphereGeometry(1, 32, 32);
+            const material = new THREE.MeshPhongMaterial({ color: 0xa855f7, shininess: 50 });
+            avatar = new THREE.Mesh(geometry, material);
+            avatar.castShadow = true;
+            scene.add(avatar);
+            console.log('⚠️ Usando avatar placeholder');
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (avatar) {
+                if (autoRotate) {
+                    avatar.rotation.y += 0.005;
+                } else {
+                    avatar.rotation.y += (targetRotationY - avatar.rotation.y) * 0.05;
+                    avatar.rotation.x += (targetRotationX - avatar.rotation.x) * 0.05;
+                }
+
+                const breathe = Math.sin(Date.now() * 0.001) * 0.01;
+                const currentScale = avatar.scale.x;
+                avatar.scale.set(currentScale, currentScale + breathe * currentScale, currentScale);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onMouseMove(event) {
+            const canvas = document.getElementById('avatarCanvas');
+            const rect = canvas.getBoundingClientRect();
+            
+            mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            targetRotationY = mouseX * Math.PI * 0.3;
+            targetRotationX = mouseY * Math.PI * 0.15;
+        }
+
+        function onWheel(event) {
+            event.preventDefault();
+            camera.position.z += event.deltaY * 0.01;
+            camera.position.z = Math.max(2, Math.min(10, camera.position.z));
+        }
+
+        function resetAvatarRotation() {
+            targetRotationX = 0;
+            targetRotationY = 0;
+            if (avatar) {
+                avatar.rotation.set(0, 0, 0);
+            }
+            camera.position.set(0, 0, 5);
+        }
+
+        function toggleAutoRotate() {
+            autoRotate = !autoRotate;
+        }
+
+        function updateAvatarEmotion(emotion, confidence) {
+            if (!avatar) return;
+
+            const color = emotionColors[emotion] || emotionColors.neutral;
+            
+            lights.fill.color.setHex(color);
+            lights.rim.color.setHex(color);
+            
+            lights.fill.intensity = 0.3 + (confidence * 0.7);
+            lights.rim.intensity = 0.5 + (confidence * 0.5);
+
+            const emotionEmojis = {
+                happy: '😊', sad: '😢', angry: '😠', fear: '😨',
+                surprise: '😲', disgust: '🤢', neutral: '😐', anxiety: '😰'
+            };
+
+            const emotionNames = {
+                happy: 'Felicidad', sad: 'Tristeza', angry: 'Ira', fear: 'Temor',
+                surprise: 'Sorpresa', disgust: 'Disgusto', neutral: 'Neutral', anxiety: 'Ansiedad'
+            };
+
+            const badge = document.getElementById('currentEmotionBadge');
+            badge.textContent = `${emotionEmojis[emotion]} ${emotionNames[emotion]}`;
+            
+            const confBadge = document.getElementById('confidenceBadge');
+            confBadge.textContent = `📊 ${Math.round(confidence * 100)}%`;
+        }
+
+        let isTextMode = true;
+        let accumulatedText = [];
+        let updateInterval = null;
+
+        const emotionMap = {
+            'happy': 'happy', 'sad': 'sad', 'fear': 'fear', 'angry': 'angry',
+            'surprise': 'surprise', 'disgust': 'disgust', 'anxiety': 'anxiety', 'neutral': 'neutral'
+        };
+
+        function startSession() {
+            fetch('/start_session', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('btnStart').disabled = true;
+                    document.getElementById('btnStop').disabled = false;
+                    document.getElementById('statusIndicator').classList.remove('hidden');
+                    
+                    accumulatedText = [];
+                    startRealtimeUpdates();
+                    
+                    if (isTextMode) {
+                        console.log('📝 Sesión iniciada - Modo texto');
+                    } else {
+                        console.log('🎙️ Sesión iniciada - Modo voz');
+                    }
+                });
+        }
+
+        function stopSession() {
+            document.getElementById('statusIndicator').textContent = '⏳ Procesando...';
+            
+            fetch('/stop_session', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text_mode: isTextMode,
+                    accumulated_text: accumulatedText.join(' ')
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('btnStart').disabled = false;
+                    document.getElementById('btnStop').disabled = true;
+                    document.getElementById('statusIndicator').classList.add('hidden');
+                    
+                    stopRealtimeUpdates();
+                    showResults(data);
+                    
+                    accumulatedText = [];
+                });
+        }
+
+        function startRealtimeUpdates() {
+            updateInterval = setInterval(() => {
+                fetch('/get_current_emotions')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data && data.emotions) {
+                            updateEmotionBars(data.emotions);
+                            
+                            const emotions = data.emotions;
+                            let maxEmotion = 'neutral';
+                            let maxValue = 0;
+                            
+                            for (const [emotion, value] of Object.entries(emotions)) {
+                                if (value > maxValue) {
+                                    maxValue = value;
+                                    maxEmotion = emotion;
+                                }
+                            }
+                            
+                            updateAvatarEmotion(maxEmotion, maxValue / 100);
+                        }
+                    })
+                    .catch(err => console.error('Error:', err));
+            }, 500);
+        }
+
+        function stopRealtimeUpdates() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+                updateInterval = null;
+            }
+        }
+
+        function updateEmotionBars(emotions) {
+            for (const [emotion, value] of Object.entries(emotions)) {
+                const mappedEmotion = emotionMap[emotion];
+                if (mappedEmotion) {
+                    const bar = document.getElementById(`bar-${mappedEmotion}`);
+                    const pct = document.getElementById(`pct-${mappedEmotion}`);
+                    if (bar && pct) {
+                        bar.style.width = `${value}%`;
+                        pct.textContent = `${Math.round(value)}%`;
+                    }
+                }
+            }
+        }
+
+        function toggleInputMode() {
+            isTextMode = !isTextMode;
+            const modeIcon = document.getElementById('modeIcon');
+            const audioStatus = document.getElementById('audioStatus');
+            const textStatus = document.getElementById('textStatus');
+            
+            if (isTextMode) {
+                modeIcon.textContent = '🎙️';
+                audioStatus.textContent = 'Mic: OFF';
+                textStatus.textContent = 'Text: ON';
+            } else {
+                modeIcon.textContent = '⌨️';
+                audioStatus.textContent = 'Mic: ON';
+                textStatus.textContent = 'Text: OFF';
+            }
+        }
+
+        function showResults(data) {
+            if (data.therapist_response) {
+                addTherapistMessage(data.therapist_response);
+            }
+            
+            document.getElementById('llmOutput').textContent = data.llm_output || 'No disponible';
+            document.getElementById('textOutput').textContent = data.text_transcribed || 'No hay texto capturado';
+            document.getElementById('fullOutput').textContent = JSON.stringify(data, null, 2);
+        }
+
+        function addTherapistMessage(text) {
+            const chatPanel = document.getElementById('chatPanel');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex justify-start items-end gap-2';
+            messageDiv.innerHTML = `
+                <div class="chat-bubble">
+                    ${text}
+                </div>
+            `;
+            chatPanel.appendChild(messageDiv);
+            chatPanel.scrollTop = chatPanel.scrollHeight;
+        }
+
+        function addUserMessage(text) {
+            const chatPanel = document.getElementById('chatPanel');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex justify-end';
+            messageDiv.innerHTML = `
+                <div class="bg-gradient-to-r from-green-400 to-emerald-500 text-white rounded-2xl px-4 py-2 max-w-xs text-sm shadow-lg">
+                    ${text}
+                </div>
+            `;
+            chatPanel.appendChild(messageDiv);
+            chatPanel.scrollTop = chatPanel.scrollHeight;
+        }
+
+        function closeResults() {
+            document.getElementById('resultsModal').classList.add('hidden');
+            document.getElementById('resultsModal').classList.remove('flex');
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeResults();
+            }
+        });
+
+        window.onload = function() {
+            initThreeJS();
+        };
     </script>
 </body>
 </html>

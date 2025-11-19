@@ -1,0 +1,58 @@
+# === Entorno Virtual ===
+venv/
+.venv/
+env/
+ENV/
+
+# === Archivos de Python ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# === Modelos Pesados ===
+models/
+*.pth
+*.pt
+*.onnx
+
+# === Audios ===
+*.wav
+*.mp3
+*.aac
+*.ogg
+*.flac
+
+# === Videos ===
+*.mp4
+*.avi
+*.mkv
+*.mov
+*.webm
+*.flv
+
+# Carpetas donde guardas grabaciones
+session_videos/
+output.mp4
+output_*.avi
+
+# === Archivos temporales ===
+*.log
+*.tmp
+*.cache
+.cache/
+
+# === Archivos creados por Jupyter ===
+.ipynb_checkpoints/
+
+# === Archivos de configuración del sistema ===
+.DS_Store
+Thumbs.db
+
+# === Media subida por el usuario ===
+static/uploads/
+uploads/
+
+# === Otros ===
+*.pickle
+*.pkl

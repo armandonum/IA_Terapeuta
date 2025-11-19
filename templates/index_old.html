@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Reconocimiento de Emociones</title>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 Sistema de Reconocimiento de Emociones</h1>
+            <p>Control de grabación y análisis en tiempo real</p>
+        </div>
+        
+        <div class="content">
+            <!-- Alert messages -->
+            <div id="alertBox" class="alert"></div>
+            
+            <!-- Video feed -->
+            <div class="video-container">
+                <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+                <div id="recordingIndicator" class="recording-indicator">
+                    <span class="dot"></span>
+                    GRABANDO
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="controls">
+                <button id="btnStart" class="btn-start" onclick="startRecording()">
+                    ▶️ Iniciar Grabación
+                </button>
+                <button id="btnStop" class="btn-stop" onclick="stopRecording()" disabled>
+                    ⏹️ Detener Grabación
+                </button>
+                <button id="btnSummary" class="btn-summary" onclick="getCurrentSummary()">
+                    📊 Ver Resumen Actual
+                </button>
+                <button id="btnDownload" class="btn-download" onclick="downloadHistory()">
+                    💾 Descargar Historial JSON
+                </button>
+            </div>
+            
+            <!-- Summary panel -->
+            <div id="summaryPanel" class="summary-panel">
+                <h3>📈 Análisis de Emociones</h3>
+                <div id="summaryContent" class="summary-content">
+                    <p>Esperando datos...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isRecording = false;
+
+        function showAlert(message, type = 'success') {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.textContent = message;
+            alertBox.className = `alert ${type} active`;
+            setTimeout(() => {
+                alertBox.classList.remove('active');
+            }, 4000);
+        }
+
+        function startRecording() {
+            fetch('/start_recording', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    isRecording = true;
+                    document.getElementById('btnStart').disabled = true;
+                    document.getElementById('btnStop').disabled = false;
+                    document.getElementById('recordingIndicator').classList.add('active');
+                    showAlert('✅ Grabación iniciada: Video + Historial de emociones', 'success');
+                })
+                .catch(error => {
+                    showAlert('❌ Error al iniciar grabación: ' + error, 'error');
+                });
+        }
+
+        function stopRecording() {
+            fetch('/stop_recording', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    isRecording = false;
+                    document.getElementById('btnStart').disabled = false;
+                    document.getElementById('btnStop').disabled = true;
+                    document.getElementById('recordingIndicator').classList.remove('active');
+                    showAlert('⏹️ Grabación detenida. Generando resumen...', 'success');
+                    
+                    if (data.emotion_summary) {
+                        displaySummary(data.emotion_summary);
+                    }
+                })
+                .catch(error => {
+                    showAlert('❌ Error al detener grabación: ' + error, 'error');
+                });
+        }
+
+        function getCurrentSummary() {
+            fetch('/get_current_summary')
+                .then(response => response.json())
+                .then(data => {
+                    displaySummary(data);
+                    showAlert('📊 Resumen actualizado', 'success');
+                })
+                .catch(error => {
+                    showAlert('❌ Error al obtener resumen: ' + error, 'error');
+                });
+        }
+
+        function downloadHistory() {
+            fetch('/download_history')
+                .then(response => response.json())
+                .then(data => {
+                    const dataStr = JSON.stringify(data, null, 2);
+                    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `emotion_history_${new Date().getTime()}.json`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    showAlert('💾 Historial descargado exitosamente', 'success');
+                })
+                .catch(error => {
+                    showAlert('❌ Error al descargar: ' + error, 'error');
+                });
+        }
+
+        function displaySummary(data) {
+            const panel = document.getElementById('summaryPanel');
+            const content = document.getElementById('summaryContent');
+            
+            if (!data || data.status === 'no_data') {
+                content.innerHTML = '<p>⚠️ No hay datos registrados aún. Inicia una grabación primero.</p>';
+                panel.classList.add('active');
+                return;
+            }
+
+            let html = '';
+
+            // Recording info
+            if (data.recording_info) {
+                html += `
+                    <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                        <h4>⏱️ Información de Grabación</h4>
+                        <p><strong>Inicio:</strong> ${data.recording_info.start_time || 'N/A'}</p>
+                        <p><strong>Fin:</strong> ${data.recording_info.end_time || 'Grabando...'}</p>
+                        <p><strong>Duración:</strong> ${data.recording_info.duration_seconds || 0} segundos</p>
+                        <p><strong>Frames analizados:</strong> ${data.recording_info.total_frames || 0}</p>
+                    </div>
+                `;
+            }
+
+            // Anxiety Analysis (DESTACADO)
+            if (data.anxiety_analysis) {
+                const anxiety = data.anxiety_analysis;
+                let levelColor = '#4caf50'; // Verde por defecto
+                if (anxiety.anxiety_level === 'media') levelColor = '#ff9800';
+                if (anxiety.anxiety_level === 'alta') levelColor = '#ff5722';
+                if (anxiety.anxiety_level === 'muy_alta') levelColor = '#f44336';
+                
+                html += `
+                    <div style="margin-bottom: 20px; padding: 20px; background: ${levelColor}20; border-left: 5px solid ${levelColor}; border-radius: 8px;">
+                        <h4 style="color: ${levelColor};">🚨 ANÁLISIS DE ANSIEDAD</h4>
+                        <p><strong>Nivel:</strong> <span style="font-size: 1.3em; color: ${levelColor};">${anxiety.anxiety_level.toUpperCase()}</span></p>
+                        <p><strong>Score:</strong> ${anxiety.anxiety_score}%</p>
+                        <p><strong>Confianza:</strong> ${anxiety.confidence}%</p>
+                        <p><strong>Tendencia:</strong> ${anxiety.trend}</p>
+                        <p><strong>Emociones contribuyentes:</strong> ${anxiety.contributing_emotions.join(', ')}</p>
+                        <p style="margin-top: 10px; padding: 10px; background: white; border-radius: 5px;">
+                            💡 <strong>Recomendación:</strong> ${anxiety.recommendations}
+                        </p>
+                    </div>
+                `;
+            }
+
+            // Anxiety Summary (si existe)
+            if (data.anxiety_summary) {
+                const summary = data.anxiety_summary;
+                html += `
+                    <div style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+                        <h4>📊 Resumen de Ansiedad en Sesión</h4>
+                        <p><strong>Promedio:</strong> ${summary.mean}%</p>
+                        <p><strong>Máximo:</strong> ${summary.max}%</p>
+                        <p><strong>Mínimo:</strong> ${summary.min}%</p>
+                        <p><strong>Actual:</strong> ${summary.current}%</p>
+                    </div>
+                `;
+            }
+
+            // Emotion statistics
+            if (data.emotion_statistics) {
+                html += '<h4>📊 Estadísticas de Emociones</h4><div style="margin-bottom: 20px;">';
+                for (const [emotion, stats] of Object.entries(data.emotion_statistics)) {
+                    html += `
+                        <div class="emotion-stat">
+                            <span class="emotion-name">${emotion}</span>
+                            <span class="emotion-value">
+                                Promedio: ${stats.mean}% | 
+                                Max: ${stats.max}% | 
+                                Dominancia: ${stats.dominant_percentage}%
+                            </span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+
+            // Transitions
+            if (data.emotion_transitions && data.emotion_transitions.length > 0) {
+                html += '<h4>🔄 Transiciones Detectadas</h4><div style="margin-bottom: 20px;">';
+                data.emotion_transitions.slice(0, 5).forEach(trans => {
+                    html += `
+                        <div class="timeline-item">
+                            <strong>Segundo ${trans.time}s:</strong> 
+                            ${trans.from} → ${trans.to} 
+                            (confianza: ${trans.confidence}%)
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            // LLM Summary
+            if (data.llm_summary) {
+                html += `
+                    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+                        <h4>🤖 Resumen para LLM</h4>
+                        <pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">${data.llm_summary}</pre>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
+            panel.classList.add('active');
+        }
+    </script>
+</body>
+</html>
