@@ -109,7 +109,7 @@ class EmotionRecognitionSystem:
         
         
         
-#         import numpy as np
+# import numpy as np
 # from emotion_processor.face_mesh.face_mesh_processor import FaceMeshProcessor
 # from emotion_processor.data_processing.main import PointsProcessing
 # from emotion_processor.emotions_recognition.main import EmotionRecognition
