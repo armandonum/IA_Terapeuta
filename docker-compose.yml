@@ -1,0 +1,73 @@
+services:
+  # Servicio de MongoDB
+  mongodb:
+    image: mongo:7.0
+    container_name: emotion_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: emotion_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - emotion_network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Servicio de la aplicación Flask
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: emotion_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      # Montar directorios para persistencia
+      - ./session_videos:/app/session_videos
+      - ./models:/app/models
+      - ./static:/app/static
+      - ./templates:/app/templates
+      # Para desarrollo: montar código (comentar en producción)
+      # - .:/app
+    environment:
+      - FLASK_APP=app_integrated.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - MONGO_URI=mongodb://admin:password123@mongodb:27017/emotion_db?authSource=admin
+      - PYTHONUNBUFFERED=1
+      - DISPLAY=${DISPLAY}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - emotion_network
+    # Descomentar para acceso a cámara en Linux
+    # devices:
+    #   - /dev/video0:/dev/video0
+    # Descomentar si tienes GPU NVIDIA
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+
+networks:
+  emotion_network:
+    driver: bridge

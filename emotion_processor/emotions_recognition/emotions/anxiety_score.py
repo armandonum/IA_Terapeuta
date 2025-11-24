@@ -2,7 +2,7 @@ from emotion_processor.emotions_recognition.features.weights_emotion_score impor
 
 class AnxietyScore(WeightedEmotionScore):
     def __init__(self):
-        super().__init__(eyebrows_weight=0.35, eyes_weight=0.35, nose_weight=0.1, mouth_weight=0.2)
+        super().__init__(eyebrows_weight=0.45, eyes_weight=0.45, nose_weight=0.1, mouth_weight=0.12)
 
     def calculate_eyebrows_score(self, eyebrows_result: dict) -> float:
         score = 0.0

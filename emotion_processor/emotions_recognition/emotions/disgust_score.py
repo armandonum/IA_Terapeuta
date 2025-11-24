@@ -13,7 +13,7 @@ class DisgustScore(WeightedEmotionScore):
     """
     def __init__(self):
         # La NARIZ es el indicador principal de disgusto
-        super().__init__(eyebrows_weight=0.05, eyes_weight=0.05, nose_weight=0.20, mouth_weight=0.05)
+        super().__init__(eyebrows_weight=0.05, eyes_weight=0.20, nose_weight=0.40, mouth_weight=0.10)
 
     def calculate_eyebrows_score(self, eyebrows_result: dict) -> float:
         """

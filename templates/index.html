@@ -220,11 +220,11 @@
             </div>
 
             <!-- Chat Panel flotante - inferior derecho -->
-            <div class="absolute top-20 right-4 w-72 md:w-80 bg-white rounded-3xl shadow-2xl  border-purple-200 overflow-hidden flex flex-col z-20 animate-slide-up">
+            <div class="absolute top-20 right-4 w-72 md:w-80  rounded-3xl   border-purple-200 overflow-hidden flex flex-col z-20 animate-slide-up">
                 
                 <div id="chatPanel" class="flex-1 p-4 space-y-3 bg-gradient-to-b from-purple-50 to-blue-50">
                     <div class="text-center text-gray-400 text-sm">
-                        Esperando respuesta...
+                 
                     </div>
                 </div>
             </div>
@@ -693,16 +693,25 @@
         }
 
         function addTherapistMessage(text) {
-            const chatPanel = document.getElementById('chatPanel');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'flex justify-start items-end gap-2';
-            messageDiv.innerHTML = `
-                <div class="chat-bubble">
-                    ${text}
-                </div>
-            `;
-            chatPanel.appendChild(messageDiv);
-            chatPanel.scrollTop = chatPanel.scrollHeight;
+         const chatPanel = document.getElementById('chatPanel');
+
+
+    const therapistMessages = chatPanel.querySelectorAll('.therapist-message');
+
+    let lastMessage = therapistMessages[therapistMessages.length - 1];
+
+        if (!lastMessage) {
+        lastMessage = document.createElement('div');
+        lastMessage.className = 'therapist-message flex justify-start items-end gap-2';
+        lastMessage.innerHTML = `<div class="chat-bubble"></div>`;
+        chatPanel.appendChild(lastMessage);
+    }
+
+ 
+    lastMessage.querySelector('.chat-bubble').innerHTML = text;
+
+    // Scroll al final
+    chatPanel.scrollTop = chatPanel.scrollHeight;
         }
 
         function addUserMessage(text) {
